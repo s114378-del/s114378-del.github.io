@@ -1,11 +1,499 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset = "utf-8">
-    <title>hehe</title>
-    <link rel="icon" href="icon.png">
-  </head>
-  <body>
-      hello world
-  </body>
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>😺 Meme Cat Mood Generator V3</title>
+
+<style>
+
+:root{
+--bg:#f4f4f4;
+--card:#ffffff;
+--text:#222;
+--shadow:0 5px 20px rgba(0,0,0,.15);
+--primary:#5865f2;
+}
+
+.dark{
+--bg:#121212;
+--card:#1e1e1e;
+--text:#fff;
+--shadow:0 5px 20px rgba(255,255,255,.05);
+}
+
+*{
+box-sizing:border-box;
+}
+
+body{
+margin:0;
+background:var(--bg);
+color:var(--text);
+font-family:"Microsoft JhengHei",sans-serif;
+transition:.3s;
+}
+
+header{
+padding:20px;
+text-align:center;
+}
+
+.container{
+max-width:1200px;
+margin:auto;
+padding:20px;
+}
+
+.mood-buttons{
+display:flex;
+flex-wrap:wrap;
+justify-content:center;
+gap:10px;
+}
+
+button{
+border:none;
+cursor:pointer;
+padding:12px 18px;
+border-radius:12px;
+font-size:15px;
+color:white;
+transition:.2s;
+}
+
+button:hover{
+transform:translateY(-2px);
+}
+
+.happy{background:#2ecc71;}
+.sad{background:#3498db;}
+.angry{background:#e74c3c;}
+.speechless{background:#f39c12;}
+.annoyed{background:#9b59b6;}
+.excited{background:#1abc9c;}
+.surprised{background:#e67e22;}
+.tired{background:#7f8c8d;}
+
+.card{
+margin-top:25px;
+background:var(--card);
+border-radius:20px;
+overflow:hidden;
+box-shadow:var(--shadow);
+}
+
+.card img{
+width:100%;
+max-height:550px;
+object-fit:cover;
+display:block;
+}
+
+.info{
+padding:20px;
+text-align:center;
+}
+
+.name{
+font-size:32px;
+font-weight:bold;
+}
+
+.desc{
+margin-top:10px;
+opacity:.8;
+}
+
+.action-buttons{
+margin-top:20px;
+display:flex;
+justify-content:center;
+gap:10px;
+flex-wrap:wrap;
+}
+
+.action-buttons button{
+background:var(--primary);
+}
+
+.section{
+margin-top:40px;
+}
+
+.grid{
+display:flex;
+flex-wrap:wrap;
+gap:10px;
+}
+
+.item{
+background:var(--card);
+padding:10px;
+border-radius:12px;
+box-shadow:var(--shadow);
+}
+
+.dark-toggle{
+position:fixed;
+top:15px;
+right:15px;
+background:black;
+}
+
+.dark .dark-toggle{
+background:white;
+color:black;
+}
+
+@media(max-width:700px){
+
+.name{
+font-size:24px;
+}
+
+button{
+font-size:14px;
+}
+
+}
+
+</style>
+</head>
+
+<body>
+
+<button class="dark-toggle" onclick="toggleDark()">
+🌙 深色模式
+</button>
+
+<header>
+
+<h1>😺 迷因貓情緒推薦器 V3</h1>
+
+<p>
+選擇你的情緒，看看哪隻貓最懂你
+</p>
+
+</header>
+
+<div class="container">
+
+<div class="mood-buttons">
+
+<button class="happy"
+onclick="pickMood('happy')">
+😸 開心
+</button>
+
+<button class="sad"
+onclick="pickMood('sad')">
+😿 難過
+</button>
+
+<button class="angry"
+onclick="pickMood('angry')">
+😾 生氣
+</button>
+
+<button class="speechless"
+onclick="pickMood('speechless')">
+🙄 無語
+</button>
+
+<button class="annoyed"
+onclick="pickMood('annoyed')">
+😑 不耐煩
+</button>
+
+<button class="excited"
+onclick="pickMood('excited')">
+🤯 亢奮
+</button>
+
+<button class="surprised"
+onclick="pickMood('surprised')">
+😲 驚訝
+</button>
+
+<button class="tired"
+onclick="pickMood('tired')">
+🥱 疲憊
+</button>
+
+</div>
+
+<div class="card">
+
+<img id="catImage"
+src="images/happycat.jpg">
+
+<div class="info">
+
+<div id="catName"
+class="name">
+等待選擇情緒
+</div>
+
+<div id="catDesc"
+class="desc">
+請點選上方按鈕
+</div>
+
+<div class="action-buttons">
+
+<button onclick="reroll()">
+🎲 再抽一次
+</button>
+
+<button onclick="saveFavorite()">
+❤️ 收藏
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="section">
+
+<h2>❤️ 我的收藏</h2>
+
+<div id="favorites"
+class="grid">
+</div>
+
+</div>
+
+<div class="section">
+
+<h2>📜 最近抽到</h2>
+
+<div id="history"
+class="grid">
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+let currentMood=null;
+let currentCat=null;
+
+const cats={
+
+happy:[
+{
+name:"快樂貓",
+img:"images/happycat.jpg",
+desc:"今天心情超好。"
+}
+],
+
+sad:[
+{
+name:"哭哭貓",
+img:"images/cryingcat.jpg",
+desc:"讓我陪你難過一下。"
+}
+],
+
+angry:[
+{
+name:"暴怒貓",
+img:"images/grumpycat.jpg",
+desc:"不要來煩我。"
+}
+],
+
+speechless:[
+{
+name:"無語貓",
+img:"images/smudgecat.jpg",
+desc:"你認真嗎？"
+}
+],
+
+annoyed:[
+{
+name:"不耐煩貓",
+img:"images/annoyedcat.jpg",
+desc:"耐心已歸零。"
+}
+],
+
+excited:[
+{
+name:"亢奮貓",
+img:"images/excitedcat.jpg",
+desc:"能量爆棚！"
+}
+],
+
+surprised:[
+{
+name:"驚訝貓",
+img:"images/surprisedcat.jpg",
+desc:"真的假的！？"
+}
+],
+
+tired:[
+{
+name:"疲憊貓",
+img:"images/tiredcat.jpg",
+desc:"好想睡覺。"
+}
+]
+
+};
+
+function randomCat(mood){
+
+const list=cats[mood];
+
+return list[
+Math.floor(
+Math.random()*list.length
+)
+];
+
+}
+
+function pickMood(mood){
+
+currentMood=mood;
+
+currentCat=randomCat(mood);
+
+renderCat();
+
+addHistory(currentCat.name);
+
+}
+
+function reroll(){
+
+if(!currentMood)return;
+
+currentCat=randomCat(currentMood);
+
+renderCat();
+
+addHistory(currentCat.name);
+
+}
+
+function renderCat(){
+
+document.getElementById("catImage")
+.src=currentCat.img;
+
+document.getElementById("catName")
+.innerHTML=currentCat.name;
+
+document.getElementById("catDesc")
+.innerHTML=currentCat.desc;
+
+}
+
+function addHistory(name){
+
+const item=document.createElement("div");
+
+item.className="item";
+
+item.innerHTML=name;
+
+history.prepend(item);
+
+while(history.children.length>10){
+
+history.removeChild(
+history.lastChild
+);
+
+}
+
+}
+
+function saveFavorite(){
+
+if(!currentCat)return;
+
+let favs=
+JSON.parse(
+localStorage.getItem("cats")
+||"[]"
+);
+
+favs.push(currentCat.name);
+
+localStorage.setItem(
+"cats",
+JSON.stringify(favs)
+);
+
+renderFavorites();
+
+}
+
+function renderFavorites(){
+
+favorites.innerHTML="";
+
+let favs=
+JSON.parse(
+localStorage.getItem("cats")
+||"[]"
+);
+
+[...new Set(favs)]
+.forEach(cat=>{
+
+const div=
+document.createElement("div");
+
+div.className="item";
+
+div.innerHTML=cat;
+
+favorites.appendChild(div);
+
+});
+
+}
+
+function toggleDark(){
+
+document.body.classList.toggle(
+"dark"
+);
+
+localStorage.setItem(
+"theme",
+document.body.classList.contains("dark")
+);
+
+}
+
+if(
+localStorage.getItem("theme")
+==="true"
+){
+document.body.classList.add(
+"dark"
+);
+}
+
+renderFavorites();
+
+</script>
+
+</body>
 </html>
