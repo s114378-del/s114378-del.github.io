@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>排球接球王 V4</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    background:#222;
+    color:white;
+    font-family:Arial,sans-serif;
+    text-align:center;
+}
+
+#hud{
+    background:#111;
+    padding:15px;
+    font-size:22px;
+}
+
+#startBtn{
+    margin:10px;
+    padding:12px 25px;
+    font-size:22px;
+    cursor:pointer;
+}
+
+#game{
+    position:relative;
+    width:100%;
+    max-width:900px;
+    height:70vh;
+    margin:auto;
+    overflow:hidden;
+
+    background:
+    linear-gradient(
+        to bottom,
+        #87ceeb 0%,
+        #87ceeb 55%,
+        #d89b5f 55%,
+        #c88441 100%
+    );
+}
+
+#message{
+    position:absolute;
+    top:20px;
+    width:100%;
+    font-size:34px;
+    font-weight:bold;
+    text-shadow:2px 2px 5px black;
+    z-index:20;
+}
+
+#net{
+    position:absolute;
+    width:100%;
+    height:6px;
+    background:white;
+    top:55%;
+}
+
+#partner{
+    position:absolute;
+    left:50%;
+    top:35%;
+    transform:translateX(-50%);
+    font-size:90px;
+}
+
+#ball{
+    position:absolute;
+    font-size:42px;
+    display:none;
+    z-index:15;
+}
+
+#crowdLeft,
+#crowdRight{
+    position:absolute;
+    top:45%;
+    font-size:26px;
+    line-height:1.4;
+    z-index:5;
+    user-select:none;
+}
+
+#crowdLeft{
+    left:5px;
+}
+
+#crowdRight{
+    right:5px;
+}
+
+.cheerText{
+    position:absolute;
+    font-size:24px;
+    font-weight:bold;
+    color:yellow;
+    animation:floatUp 2s linear forwards;
+    text-shadow:2px 2px 5px black;
+    z-index:30;
+}
+
+@keyframes floatUp{
+    0%{
+        opacity:1;
+        transform:translateY(0);
+    }
+
+    100%{
+        opacity:0;
+        transform:translateY(-120px);
+    }
+}
+
+#controls{
+    display:flex;
+    width:100%;
+    max-width:900px;
+    margin:auto;
+}
+
+.control{
+    flex:1;
+    height:90px;
+    border:none;
+    font-size:42px;
+    color:white;
+    cursor:pointer;
+}
+
+.left{
+    background:#1976d2;
+}
+
+.middle{
+    background:#388e3c;
+}
+
+.right{
+    background:#f57c00;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="hud">
+🏐 分數：
+<span id="score">0</span>
+
+｜
+
+🔥 Combo：
+<span id="combo">0</span>
+</div>
+
+<button id="startBtn">
+開始遊戲
+</button>
+
+<div id="game">
+
+<div id="message"></div>
+
+<div id="crowdLeft">
+👥👥👥<br>
+🙋🙋🙋<br>
+👏👏👏
+</div>
+
+<div id="crowdRight">
+👥👥👥<br>
+🙋🙋🙋<br>
+👏👏👏
+</div>
+
+<div id="partner">
+🧍‍♂️
+</div>
+
+<div id="net"></div>
+
+<div id="ball">
+🏐
+</div>
+
+</div>
+
+<div id="controls">
+
+<button class="control left">
+↖
+</button>
+
+<button class="control middle">
+↑
+</button>
+
+<button class="control right">
+↗
+</button>
+
+</div>
+<script>
+  const game = document.getElementById("game");
+const ball = document.getElementById("ball");
+
+const scoreText = document.getElementById("score");
+const comboText = document.getElementById("combo");
+const message = document.getElementById("message");
+
+const startBtn = document.getElementById("startBtn");
+
+const crowdLeft = document.getElementById("crowdLeft");
+const crowdRight = document.getElementById("crowdRight");
+
+const buttons =
+document.querySelectorAll(".control");
+
+let score = 0;
+let combo = 0;
+
+let running = false;
+
+let currentLane = "";
+
+let missTimer = null;
+
+const lanes = [
+    "left",
+    "middle",
+    "right"
+];
+
+const crowdFaces = [
+    "👏👏👏",
+    "📣📣📣",
+    "🎉🎉🎉",
+    "🙌🙌🙌"
+];
+
+const crowdWords = [
+    "加油！",
+    "好球！",
+    "Nice！",
+    "衝啊！",
+    "太強了！",
+    "再來一球！"
+];
+
+const hitWords = [
+    "PERFECT!",
+    "NICE!",
+    "GREAT!",
+    "AWESOME!"
+];
+
+startBtn.addEventListener(
+    "click",
+    startGame
+);
+
+buttons[0].onclick =
+()=>hit("left");
+
+buttons[1].onclick =
+()=>hit("middle");
+
+buttons[2].onclick =
+()=>hit("right");
+
+function startGame(){
+
+    clearTimeout(missTimer);
+
+    score = 0;
+    combo = 0;
+
+    running = true;
+
+    updateHUD();
+
+    message.innerHTML = "";
+
+    spawnBall();
+}
+
+function updateHUD(){
+
+    scoreText.textContent = score;
+    comboText.textContent = combo;
+}
+
+function spawnBall(){
+
+    if(!running) return;
+
+    ball.style.display = "none";
+
+    setTimeout(()=>{
+
+        const width =
+        game.clientWidth;
+
+        const height =
+        game.clientHeight;
+
+        currentLane =
+        lanes[
+            Math.floor(
+                Math.random()*3
+            )
+        ];
+
+        let startX;
+        let endX;
+
+        if(currentLane==="left"){
+
+            startX = width*0.30;
+            endX = width*0.38;
+        }
+
+        if(currentLane==="middle"){
+
+            startX = width*0.50;
+            endX = width*0.50;
+        }
+
+        if(currentLane==="right"){
+
+            startX = width*0.70;
+            endX = width*0.62;
+        }
+
+        const startY =
+        height*0.35;
+
+        const endY =
+        height*0.82;
+
+        ball.style.transition =
+        "none";
+
+        ball.style.left =
+        startX + "px";
+
+        ball.style.top =
+        startY + "px";
+
+        ball.style.display =
+        "block";
+
+        void ball.offsetWidth;
+
+        const reactionTime =
+        1500 +
+        Math.random()*500;
+
+        ball.style.transition =
+        `all ${reactionTime}ms linear`;
+
+        ball.style.left =
+        endX + "px";
+
+        ball.style.top =
+        endY + "px";
+
+        clearTimeout(missTimer);
+
+        missTimer =
+        setTimeout(()=>{
+
+            gameOver();
+
+        },reactionTime);
+
+    },100);
+}
+
+function hit(direction){
+
+    if(!running) return;
+
+    if(direction===currentLane){
+
+        clearTimeout(missTimer);
+
+        score++;
+        combo++;
+
+        updateHUD();
+
+        let text =
+        hitWords[
+            Math.floor(
+                Math.random()
+                * hitWords.length
+            )
+        ];
+
+        if(combo>=20){
+
+            text =
+            "🏆 LEGENDARY!";
+        }
+
+        else if(combo>=10){
+
+            text =
+            "⚡ AMAZING!";
+        }
+
+        else if(combo>=5){
+
+            text =
+            "🔥 HOT!";
+        }
+
+        message.innerHTML =
+        text;
+
+        setTimeout(()=>{
+
+            message.innerHTML="";
+
+        },600);
+
+        spawnBall();
+
+    }else{
+
+        gameOver();
+    }
+}
+
+function gameOver(){
+
+    running = false;
+
+    clearTimeout(
+        missTimer
+    );
+
+    ball.style.display =
+    "none";
+
+    message.innerHTML =
+    "❌ GAME OVER<br>分數："+score;
+}
+
+function crowdAnimation(){
+
+    const face =
+    crowdFaces[
+        Math.floor(
+            Math.random()
+            * crowdFaces.length
+        )
+    ];
+
+    crowdLeft.innerHTML =
+    "👥👥👥<br>🙋🙋🙋<br>"
+    + face;
+
+    crowdRight.innerHTML =
+    "👥👥👥<br>🙋🙋🙋<br>"
+    + face;
+}
+
+function floatingCheer(){
+
+    if(!running) return;
+
+    const div =
+    document.createElement("div");
+
+    div.className =
+    "cheerText";
+
+    div.innerHTML =
+    crowdWords[
+        Math.floor(
+            Math.random()
+            * crowdWords.length
+        )
+    ];
+
+    const side =
+    Math.random() > 0.5;
+
+    if(side){
+
+        div.style.left =
+        "40px";
+    }
+    else{
+
+        div.style.right =
+        "40px";
+    }
+
+    div.style.top =
+    "250px";
+
+    game.appendChild(div);
+
+    setTimeout(()=>{
+
+        div.remove();
+
+    },2000);
+}
+
+setInterval(
+    crowdAnimation,
+    1000
+);
+
+setInterval(
+    floatingCheer,
+    1800
+);
+  ...
+</div>
+
+<script>
+
+// 第2部分 JavaScript 全部貼在這裡
+
+</script>
+
+</body>
+</html>
