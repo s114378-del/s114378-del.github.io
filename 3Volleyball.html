@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>排球接球王 V3</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    background:#222;
+    color:white;
+    font-family:Arial,sans-serif;
+    text-align:center;
+}
+
+#hud{
+    background:#111;
+    padding:15px;
+    font-size:24px;
+}
+
+#game{
+    position:relative;
+    width:100%;
+    max-width:900px;
+    height:70vh;
+    margin:auto;
+    overflow:hidden;
+
+    background:
+    linear-gradient(
+        to bottom,
+        #87ceeb 0%,
+        #87ceeb 55%,
+        #d89b5f 55%,
+        #c88441 100%
+    );
+}
+
+#net{
+    position:absolute;
+    top:55%;
+    width:100%;
+    height:6px;
+    background:white;
+}
+
+#partner{
+    position:absolute;
+    left:50%;
+    top:35%;
+    transform:translateX(-50%);
+    font-size:90px;
+}
+
+#ball{
+    position:absolute;
+    font-size:42px;
+    display:none;
+    z-index:10;
+}
+
+#message{
+    position:absolute;
+    top:15px;
+    width:100%;
+    font-size:36px;
+    font-weight:bold;
+    text-shadow:2px 2px 5px black;
+}
+
+#startBtn{
+    margin:10px;
+    padding:12px 25px;
+    font-size:22px;
+}
+
+#controls{
+    display:flex;
+    width:100%;
+    max-width:900px;
+    margin:auto;
+}
+
+.control{
+    flex:1;
+    height:90px;
+    font-size:42px;
+    border:none;
+    color:white;
+}
+
+.left{
+    background:#1976d2;
+}
+
+.middle{
+    background:#388e3c;
+}
+
+.right{
+    background:#f57c00;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="hud">
+🏐 分數：
+<span id="score">0</span>
+
+｜
+
+🔥 Combo：
+<span id="combo">0</span>
+</div>
+
+<button id="startBtn">
+開始遊戲
+</button>
+
+<div id="game">
+
+<div id="message"></div>
+
+<div id="partner">🧍‍♂️</div>
+
+<div id="net"></div>
+
+<div id="ball">🏐</div>
+
+</div>
+
+<div id="controls">
+
+<button class="control left">
+↖
+</button>
+
+<button class="control middle">
+↑
+</button>
+
+<button class="control right">
+↗
+</button>
+
+</div>
+
+<script>
+
+const game = document.getElementById("game");
+const ball = document.getElementById("ball");
+
+const scoreText = document.getElementById("score");
+const comboText = document.getElementById("combo");
+const message = document.getElementById("message");
+
+const startBtn = document.getElementById("startBtn");
+
+const buttons =
+document.querySelectorAll(".control");
+
+let score = 0;
+let combo = 0;
+
+let running = false;
+
+let currentLane = null;
+
+let missTimer = null;
+
+const lanes = [
+    "left",
+    "middle",
+    "right"
+];
+
+startBtn.addEventListener("click",startGame);
+
+buttons[0].onclick=()=>hit("left");
+buttons[1].onclick=()=>hit("middle");
+buttons[2].onclick=()=>hit("right");
+
+function startGame(){
+
+    clearTimeout(missTimer);
+
+    score = 0;
+    combo = 0;
+
+    updateHUD();
+
+    running = true;
+
+    message.innerHTML = "";
+
+    spawnBall();
+}
+
+function updateHUD(){
+
+    scoreText.textContent = score;
+    comboText.textContent = combo;
+}
+
+function spawnBall(){
+
+    if(!running) return;
+
+    ball.style.display = "none";
+
+    setTimeout(()=>{
+
+        const width = game.clientWidth;
+        const height = game.clientHeight;
+
+        currentLane =
+        lanes[Math.floor(Math.random()*3)];
+
+        let startX;
+        let endX;
+
+        if(currentLane==="left"){
+            startX = width*0.30;
+            endX = width*0.38;
+        }
+
+        if(currentLane==="middle"){
+            startX = width*0.50;
+            endX = width*0.50;
+        }
+
+        if(currentLane==="right"){
+            startX = width*0.70;
+            endX = width*0.62;
+        }
+
+        const startY = height*0.35;
+        const endY = height*0.82;
+
+        ball.style.transition = "none";
+
+        ball.style.left = startX+"px";
+        ball.style.top = startY+"px";
+
+        ball.style.display = "block";
+
+        void ball.offsetWidth;
+
+        const reactionTime =
+        1500 + Math.random()*500;
+
+        ball.style.transition =
+        `all ${reactionTime}ms linear`;
+
+        ball.style.left = endX+"px";
+        ball.style.top = endY+"px";
+
+        clearTimeout(missTimer);
+
+        missTimer =
+        setTimeout(()=>{
+            gameOver();
+        },reactionTime);
+
+    },100);
+}
+
+function hit(direction){
+
+    if(!running) return;
+
+    if(direction===currentLane){
+
+        clearTimeout(missTimer);
+
+        score++;
+        combo++;
+
+        updateHUD();
+
+        if(combo>=20){
+            message.innerHTML="🏆 LEGENDARY!";
+        }
+        else if(combo>=10){
+            message.innerHTML="⚡ AMAZING!";
+        }
+        else if(combo>=5){
+            message.innerHTML="🔥 HOT!";
+        }
+        else{
+            message.innerHTML="PERFECT!";
+        }
+
+        setTimeout(()=>{
+            message.innerHTML="";
+        },500);
+
+        spawnBall();
+
+    }else{
+
+        gameOver();
+    }
+}
+
+function gameOver(){
+
+    running = false;
+
+    clearTimeout(missTimer);
+
+    ball.style.display="none";
+
+    message.innerHTML=
+    "❌ GAME OVER<br>分數："+score;
+}
+
+</script>
+
+</body>
+</html>
